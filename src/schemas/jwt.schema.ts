@@ -17,6 +17,10 @@ export const jwtPayloadSchema = z.object({
     name: z.string().optional(),
 })
 
+export const verifyJwtSchema = z.object({
+    token: z.string(),
+    key: z.string()
+})
 
 //I'm inferring types from the schema here rather than having to maintain a seperate fwith duplicate code
 export type JwtHeader = z.infer<typeof jwtHeaderSchema>;

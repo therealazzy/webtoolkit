@@ -1,8 +1,8 @@
 import { Router } from "express";
-import { inspectJwtController } from "../controllers/jwt.controller";
+import { inspectJwtController, verifyJwtController } from "../controllers/jwt.controller";
 
 const router = Router();
 
 router.post("/inspect", inspectJwtController);
-
+router.post("/verify", verifyJwtController);
 export default router;

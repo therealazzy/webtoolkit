@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.jwtPayloadSchema = exports.jwtHeaderSchema = exports.jwtSchema = void 0;
+exports.verifyJwtSchema = exports.jwtPayloadSchema = exports.jwtHeaderSchema = exports.jwtSchema = void 0;
 const zod_1 = require("zod");
 exports.jwtSchema = zod_1.z.object({
     token: zod_1.z.string()
@@ -15,4 +15,8 @@ exports.jwtPayloadSchema = zod_1.z.object({
     nbf: zod_1.z.number().optional(),
     sub: zod_1.z.string().optional(),
     name: zod_1.z.string().optional(),
+});
+exports.verifyJwtSchema = zod_1.z.object({
+    token: zod_1.z.string(),
+    key: zod_1.z.string()
 });

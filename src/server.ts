@@ -1,3 +1,4 @@
+import "dotenv/config";
 import  express from "express";
 import jwtRouter from "./routes/jwt.routes";
 import { errorHandler } from "./middleware/errorHandler";
