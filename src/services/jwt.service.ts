@@ -1,5 +1,6 @@
 import { AppError } from "../errors/appError";
 import { jwtHeaderSchema, jwtPayloadSchema } from "../schemas/jwt.schema";
+import { getJwtMetadata } from "./jwtMetadata.service";
 
 
 function decodeJsonPart(part: string){
@@ -22,17 +23,13 @@ export function inspectJwt(token: string) {
     const header = jwtHeaderSchema.parse(decodeJsonPart(parts[0]));
     const payload = jwtPayloadSchema.parse(decodeJsonPart(parts[1]));
 
-    const expiresAt = payload.exp !== undefined ? new Date(payload.exp * 1000) : undefined;
-    const isExpired = expiresAt !== undefined ? expiresAt.getTime() < Date.now() : undefined;
-    const issuedAt = payload.iat !== undefined ? new Date(payload.iat * 1000) : undefined;
+    const metadata = getJwtMetadata(payload);
 
 
     return{
         header,
         payload,
         signature,
-        expiresAt,
-        isExpired,
-        issuedAt
+        metadata
     };
 }
