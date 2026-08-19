@@ -1,0 +1,32 @@
+{
+  "name": "webtoolkit",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node ./dist/server.js",
+    "dev" : "tsc-watch --onSuccess \"node dist/server.js\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/therealazzy/webtoolkit.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/therealazzy/webtoolkit/issues"
+  },
+  "homepage": "https://github.com/therealazzy/webtoolkit#readme",
+  "description": "",
+  "devDependencies": {
+    "@tsconfig/node24": "^24.0.5",
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.2.0",
+    "tsc-watch": "^7.2.1",
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}
