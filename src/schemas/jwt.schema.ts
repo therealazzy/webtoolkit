@@ -12,6 +12,7 @@ export const jwtHeaderSchema = z.object({
 export const jwtPayloadSchema = z.object({
     exp: z.number().optional(),
     iat: z.number().optional(),
+    nbf: z.number().optional(),
     sub: z.string().optional(),
     name: z.string().optional(),
 })

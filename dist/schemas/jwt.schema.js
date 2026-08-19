@@ -12,6 +12,7 @@ exports.jwtHeaderSchema = zod_1.z.object({
 exports.jwtPayloadSchema = zod_1.z.object({
     exp: zod_1.z.number().optional(),
     iat: zod_1.z.number().optional(),
+    nbf: zod_1.z.number().optional(),
     sub: zod_1.z.string().optional(),
     name: zod_1.z.string().optional(),
 });
