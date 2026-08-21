@@ -37,7 +37,6 @@ export function verifyJwt(token: string, key: string){
             break;
         case "HS256":
             verifyHs256Signature(token, key);
-            
             break;
         default:
             throw new AppError("Algo not supported", 400);
