@@ -21,38 +21,36 @@ function parseJwt(token: string){
     const signature = parts[2];
     const header = jwtHeaderSchema.parse(decodeJsonPart(parts[0]));
     const payload  = jwtPayloadSchema.parse(decodeJsonPart(parts[1]));
+    const signing = `${parts[0]}.${parts[1]}`;
     return{
         header,
         payload,
-        signature
+        signature,
+        signing
     }
 }
 
 
 export function verifyJwt(token: string, key: string){
-    const { header } = parseJwt(token);
+    const { header, signature, signing } = parseJwt(token);
     switch (header.alg) {
         case "RS256":
-            verifyRs256Signature(token, key);
+            verifyRs256Signature(signing, signature, key);
             break;
         case "HS256":
-            verifyHs256Signature(token, key);
+            verifyHs256Signature(signing, signature, key);
             break;
         default:
             throw new AppError("Algo not supported", 400);
-            break;
     }
 }
 
 
 
-export function verifyRs256Signature(token: string, pKey: string){
-    const parts = token.split(".");
+export function verifyRs256Signature(signing: string, signature: string, pKey: string){
+    const signatureBuffer= Buffer.from(signature, "base64url");
 
-    const signed = `${parts[0]}.${parts[1]}`;
-    const signature = Buffer.from(parts[2], "base64url");
-
-    const isValid = crypto.verify("RSA-SHA256", Buffer.from(signed), pKey, signature);
+    const isValid = crypto.verify("RSA-SHA256", Buffer.from(signing), pKey, signatureBuffer);
     if(!isValid){
         throw new AppError("Invalid signature", 400);
     }
@@ -60,14 +58,12 @@ export function verifyRs256Signature(token: string, pKey: string){
 
 
 
-export function verifyHs256Signature(token: string, secret: string){
-    const parts = token.split(".");
+export function verifyHs256Signature(signing: string, signature: string, secret: string){
 
-    const signInput = `${parts[0]}.${parts[1]}`;
-    const signature = crypto.createHmac("sha256", secret).update(signInput).digest("base64url");
+    const expectedSignature = crypto.createHmac("sha256", secret).update(signing).digest("base64url");
 
-    const expected = Buffer.from(signature);
-    const actual = Buffer.from(parts[2]);
+    const expected = Buffer.from(expectedSignature);
+    const actual = Buffer.from(signature);
 
     if(
         expected.length !== actual.length || !crypto.timingSafeEqual(expected, actual)
