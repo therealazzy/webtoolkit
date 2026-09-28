@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { AppError } from "../errors/appError";
 import { jwtHeaderSchema, jwtPayloadSchema } from "../schemas/jwt.schema";
+import { getJwtMetadata } from "./jwtMetadata.service";
 
 function decodeJsonPart(part: string){
     try {
@@ -32,7 +33,8 @@ function parseJwt(token: string){
 
 
 export function verifyJwt(token: string, key: string){
-    const { header, signature, signing } = parseJwt(token);
+    const { header, payload, signature, signing } = parseJwt(token);
+    const { isExpired, isActive } = getJwtMetadata(payload);
     switch (header.alg) {
         case "RS256":
             verifyRs256Signature(signing, signature, key);
@@ -42,6 +44,12 @@ export function verifyJwt(token: string, key: string){
             break;
         default:
             throw new AppError("Algo not supported", 400);
+    }
+    if(isExpired === true){
+        throw new AppError("Token expired", 400);
+    }
+    if(isActive === false){
+        throw new AppError("Token not active", 400);
     }
 }
 

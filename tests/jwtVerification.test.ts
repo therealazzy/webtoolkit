@@ -12,7 +12,9 @@ describe("verifyJwt", () => {
         };
         const payload = {
             sub: "123",
-            name: "Test User"
+            name: "Test User",
+            nbf: Math.floor(Date.now() / 1000) - 3600,
+            exp: Math.floor(Date.now() / 1000) + 3600 
         };
         const encodedHeader = Buffer.from(JSON.stringify(header)).toString("base64url");
         const encodedPayload = Buffer.from(JSON.stringify(payload)).toString("base64url");
@@ -139,5 +141,43 @@ describe("verifyJwt", () => {
         const invalidPublikKey = "not-a-valid-public-key";
         
         expect(()=> verifyJwt(token, invalidPublikKey)).toThrow();
+    }),
+    it("rejects an expired token", () =>{
+        const secret = "test-secret";
+        const header = {
+            alg: "HS256",
+            typ: "JWT"
+        };
+        const payload = {
+            sub: "123",
+            name: "Test User",
+            exp: Math.floor(Date.now() / 1000) - 3600
+        };
+        const encodedHeader = Buffer.from(JSON.stringify(header)).toString("base64url");
+        const encodedPayload = Buffer.from(JSON.stringify(payload)).toString("base64url");
+        const signing = `${encodedHeader}.${encodedPayload}`;
+
+        const signature = crypto.createHmac("sha256", secret).update(signing).digest("base64url");
+        const token = `${signing}.${signature}`;
+        expect(() => verifyJwt(token, secret)).toThrow("Token expired");  
+    }),
+    it("rejects a token that is not yet active", () =>{
+        const secret = "test-secret";
+        const header = {
+            alg: "HS256",
+            typ: "JWT"
+        };
+        const payload = {
+            sub: "123",
+            name: "Test User",
+            nbf: Math.floor(Date.now() / 1000) + 3600
+        };
+        const encodedHeader = Buffer.from(JSON.stringify(header)).toString("base64url");
+        const encodedPayload = Buffer.from(JSON.stringify(payload)).toString("base64url");
+        const signing = `${encodedHeader}.${encodedPayload}`;
+
+        const signature = crypto.createHmac("sha256", secret).update(signing).digest("base64url");
+        const token = `${signing}.${signature}`;
+        expect(() => verifyJwt(token, secret)).toThrow("Token not active");  
     })
 })

@@ -12,7 +12,6 @@ export function inspectJwtController(req: Request, res: Response) {
 export function verifyJwtController(req: Request, res: Response){
     const { token, key } = verifyJwtSchema.parse(req.body);
     verifyJwt(token, key);
-
     res.json({
         valid: true
     });

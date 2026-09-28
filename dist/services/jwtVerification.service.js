@@ -9,6 +9,7 @@ exports.verifyHs256Signature = verifyHs256Signature;
 const crypto_1 = __importDefault(require("crypto"));
 const appError_1 = require("../errors/appError");
 const jwt_schema_1 = require("../schemas/jwt.schema");
+const jwtMetadata_service_1 = require("./jwtMetadata.service");
 function decodeJsonPart(part) {
     try {
         const decoded = Buffer.from(part, "base64url").toString("utf8");
@@ -35,7 +36,8 @@ function parseJwt(token) {
     };
 }
 function verifyJwt(token, key) {
-    const { header, signature, signing } = parseJwt(token);
+    const { header, payload, signature, signing } = parseJwt(token);
+    const { isExpired, isActive } = (0, jwtMetadata_service_1.getJwtMetadata)(payload);
     switch (header.alg) {
         case "RS256":
             verifyRs256Signature(signing, signature, key);
@@ -45,6 +47,12 @@ function verifyJwt(token, key) {
             break;
         default:
             throw new appError_1.AppError("Algo not supported", 400);
+    }
+    if (isExpired === true) {
+        throw new appError_1.AppError("Token expired", 400);
+    }
+    if (isActive === false) {
+        throw new appError_1.AppError("Token not active", 400);
     }
 }
 function verifyRs256Signature(signing, signature, pKey) {
