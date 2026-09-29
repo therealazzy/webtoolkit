@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import { AppError } from "../errors/appError";
-import { jwtHeaderSchema, jwtPayloadSchema } from "../schemas/jwt.schema";
+import { jwtHeaderSchema, JwtPayload, jwtPayloadSchema } from "../schemas/jwt.schema";
 import { getJwtMetadata } from "./jwtMetadata.service";
 
 function decodeJsonPart(part: string){
@@ -32,7 +32,7 @@ function parseJwt(token: string){
 }
 
 
-export function verifyJwt(token: string, key: string){
+export function verifyJwt(token: string, key: string, claims?: Record<string, string>){
     const { header, payload, signature, signing } = parseJwt(token);
     const { isExpired, isActive } = getJwtMetadata(payload);
     switch (header.alg) {
@@ -50,6 +50,9 @@ export function verifyJwt(token: string, key: string){
     }
     if(isActive === false){
         throw new AppError("Token not active", 400);
+    }
+    if(claims){
+        validateClaims(payload, claims);
     }
 }
 
@@ -77,5 +80,17 @@ export function verifyHs256Signature(signing: string, signature: string, secret:
         expected.length !== actual.length || !crypto.timingSafeEqual(expected, actual)
     ){
         throw new AppError("Invalid signature", 400)
+    }
+}
+
+
+export function validateClaims(payload: JwtPayload, claims: Record<string, string>){
+    for (const [key, value] of Object.entries(claims)){
+        if(!Object.hasOwn(payload, key)){
+            throw new AppError("Claim missing", 400);
+        }
+        if(payload[key] !== value){
+            throw new AppError("Mismatched claim", 400);
+        }
     }
 }
