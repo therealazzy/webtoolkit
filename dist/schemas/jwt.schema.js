@@ -15,8 +15,9 @@ exports.jwtPayloadSchema = zod_1.z.object({
     nbf: zod_1.z.number().optional(),
     sub: zod_1.z.string().optional(),
     name: zod_1.z.string().optional(),
-});
+}).catchall(zod_1.z.unknown());
 exports.verifyJwtSchema = zod_1.z.object({
     token: zod_1.z.string(),
-    key: zod_1.z.string()
+    key: zod_1.z.string(),
+    claims: zod_1.z.record(zod_1.z.string(), zod_1.z.string()).optional()
 });

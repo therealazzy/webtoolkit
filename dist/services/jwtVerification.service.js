@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.verifyJwt = verifyJwt;
 exports.verifyRs256Signature = verifyRs256Signature;
 exports.verifyHs256Signature = verifyHs256Signature;
+exports.validateClaims = validateClaims;
 const crypto_1 = __importDefault(require("crypto"));
 const appError_1 = require("../errors/appError");
 const jwt_schema_1 = require("../schemas/jwt.schema");
@@ -35,7 +36,7 @@ function parseJwt(token) {
         signing
     };
 }
-function verifyJwt(token, key) {
+function verifyJwt(token, key, claims) {
     const { header, payload, signature, signing } = parseJwt(token);
     const { isExpired, isActive } = (0, jwtMetadata_service_1.getJwtMetadata)(payload);
     switch (header.alg) {
@@ -54,6 +55,9 @@ function verifyJwt(token, key) {
     if (isActive === false) {
         throw new appError_1.AppError("Token not active", 400);
     }
+    if (claims) {
+        validateClaims(payload, claims);
+    }
 }
 function verifyRs256Signature(signing, signature, pKey) {
     const signatureBuffer = Buffer.from(signature, "base64url");
@@ -68,5 +72,15 @@ function verifyHs256Signature(signing, signature, secret) {
     const actual = Buffer.from(signature);
     if (expected.length !== actual.length || !crypto_1.default.timingSafeEqual(expected, actual)) {
         throw new appError_1.AppError("Invalid signature", 400);
+    }
+}
+function validateClaims(payload, claims) {
+    for (const [key, value] of Object.entries(claims)) {
+        if (!Object.hasOwn(payload, key)) {
+            throw new appError_1.AppError("Claim missing", 400);
+        }
+        if (payload[key] !== value) {
+            throw new appError_1.AppError("Mismatched claim", 400);
+        }
     }
 }

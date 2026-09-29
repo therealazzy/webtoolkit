@@ -11,7 +11,7 @@ function inspectJwtController(req, res) {
     res.json(result);
 }
 function verifyJwtController(req, res) {
-    const { token, key } = jwt_schema_1.verifyJwtSchema.parse(req.body);
+    const { token, key, claims } = jwt_schema_1.verifyJwtSchema.parse(req.body);
     (0, jwtVerification_service_1.verifyJwt)(token, key);
     res.json({
         valid: true

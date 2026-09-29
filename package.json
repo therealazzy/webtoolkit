@@ -24,6 +24,8 @@
     "@tsconfig/node24": "^24.0.5",
     "@types/express": "^5.0.6",
     "@types/node": "^26.2.0",
+    "@types/supertest": "^7.2.1",
+    "supertest": "^7.3.0",
     "tsc-watch": "^7.2.1",
     "typescript": "^7.0.2",
     "vitest": "^4.1.11"
