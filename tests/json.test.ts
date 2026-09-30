@@ -1,5 +1,5 @@
 import { describe, expect, it} from "vitest"
-import { formatJson } from "../src/services/json.service"
+import { formatJson, minifyJson } from "../src/services/json.service"
 
 describe("formatJson", () => {
     it("formats valid json", () =>{
@@ -13,5 +13,15 @@ describe("formatJson", () => {
         const json = '{"name":"Azzy",}';
 
         expect(() => formatJson(json)).toThrow("Invalid JSON");
+    }),
+    it("minifies valid json", () =>{
+        const json = `{
+        "name":  "Azzy",
+        "role":  "Developer"
+        }`;
+
+        const result = minifyJson(json);
+
+        expect(result).toBe(`{"name":"Azzy","role":"Developer"}`);
     })
 })

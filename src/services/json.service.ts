@@ -8,3 +8,12 @@ export function formatJson(json: string){
         throw new AppError("Invalid JSON", 400);
     }
 }
+
+export function minifyJson(json: string){
+    try{
+        const parsed = JSON.parse(json);
+        return JSON.stringify(parsed);
+    }catch{
+        throw new AppError("Invalid JSON", 400);
+    }
+}

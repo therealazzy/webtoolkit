@@ -9,5 +9,12 @@ describe("test json endpoints", () => {
         }));
         expect(response.status).toBe(200); 
         expect(response.body.formatted).toBe(`{\n  "name": "User",\n  "role": "Developer"\n}`);
+    }),
+    it("minify endpoint test", async () =>{
+        const response = (await request(app).post("/api/v1/json/minify").send({
+            json: '{"name":    "User",     "role":        "Developer"}'
+        }));
+        expect(response.status).toBe(200); 
+        expect(response.body.minified).toBe(`{"name":"User","role":"Developer"}`);
     })
 })
