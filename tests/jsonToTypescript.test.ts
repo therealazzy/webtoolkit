@@ -55,11 +55,11 @@ interface Address {
  postcode: string;
 }`);
     }),
-it("accepts object nested in object", () =>{
-const json = `{\n"name": "User",\n"address": {\n "city" : "Manchester",\n "location": {\n "latitude" : 53.48,\n"longitude": -2.24}\n}\n}`;
-const result = jsonToTypescript(json);
+    it("accepts object nested in object", () =>{
+    const json = `{\n"name": "User",\n"address": {\n "city" : "Manchester",\n "location": {\n "latitude" : 53.48,\n"longitude": -2.24}\n}\n}`;
+    const result = jsonToTypescript(json);
 
-expect(result).toBe(`interface Root {
+    expect(result).toBe(`interface Root {
  name: string;
  address: Address;
 }
@@ -70,8 +70,8 @@ interface Address {
  latitude: number;
  longitude: number;
 }`);
-}),
-it("accepts array of objects", () =>{
+    }),
+    it("accepts array of objects", () =>{
     const json = `{
     "users": [
         {
@@ -89,5 +89,121 @@ interface Users {
  name: string;
  age: number;
 }`);
-})
+    }),
+    it("accepts array of objects while detecting varying types", () =>{
+    const json = `{
+  "users": [
+    { "name": "Azzy", "score": 6 },
+    { "name": "Bob", "score": "seven" }
+  ]
+}`;
+
+    const result = jsonToTypescript(json);
+    expect(result).toBe(`interface Root {
+ users: Users[];
+}
+interface Users {
+ name: string;
+ score: number | string;
+}`)
+
+    }),
+    it("accepts nested objects with optiona fields", () =>{
+        const json = `{
+        "users": [
+            {
+                "name": "Azzy",
+                "address": {
+                    "city": "Manchester"
+                }
+            },
+            {
+                "name": "Bob",
+                "address": {
+                    "city": "London",
+                    "postcode": "E1"
+                }
+            }
+        ]
+    }`;
+        const result = jsonToTypescript(json);
+        expect(result).toBe(`interface Root {
+ users: Users[];
+}
+interface Users {
+ name: string;
+ address: Address;
+}
+interface Address {
+ city: string;
+ postcode?: string;
+}`);
+    }),
+    it("accepts nested arrays", () =>{
+        const json = `{
+
+        "users": [
+
+            {
+
+                "name": "Azzy",
+
+                "tags": ["cpp", "typescript"]
+
+            }
+
+        ]
+
+    }`;
+
+    const result = jsonToTypescript(json);
+
+    expect(result).toBe(`interface Root {
+ users: Users[];
+}
+interface Users {
+ name: string;
+ tags: string[];
+}\n`);
+    }),
+    it("handles deeply nested objects and arrays with optional fields", () => {
+        const json = `{
+            "users": [
+                {
+                    "name": "Azzy",
+                    "profile": {
+                        "settings": {
+                            "themes": [
+                                {
+                                    "name": "dark",
+                                    "enabled": true
+                                },
+                                {
+                                    "name": "light"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Bob",
+                    "profile": {
+                        "settings": {
+                            "themes": [
+                                {
+                                    "name": "dark",
+                                    "enabled": false
+                                }
+                            ],
+                            "language": "en"
+                        }
+                    }
+                }
+            ]
+        }`;
+    
+        const result = jsonToTypescript(json);
+    
+        expect(result).toBe(`interface Root {\n users: Users[];\n}\ninterface Users {\n name: string;\n profile: Profile;\n}\ninterface Profile {\n settings: Settings;\n}\ninterface Settings {\n themes: Themes[];\n language?: string;\n}\ninterface Themes {\n name: string;\n enabled?: boolean;\n}`);
+    });
 })
