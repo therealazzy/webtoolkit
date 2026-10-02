@@ -46,5 +46,34 @@ describe("jsonDiff", () =>{
                 newValue: undefined
             }
         ]);
+    }),
+    it("detects array to object change", () => {
+        const result = diffJson(
+            '{"data":["a","b"]}',
+            '{"data":{"value":"a"}}'
+        );
+    
+        expect(result).toEqual([
+            {
+                path: "data",
+                oldValue: ["a", "b"],
+                newValue: { value: "a" }
+            }
+        ]);
+    });
+    
+    it("detects object to array change", () => {
+        const result = diffJson(
+            '{"data":{"value":"a"}}',
+            '{"data":["a","b"]}'
+        );
+    
+        expect(result).toEqual([
+            {
+                path: "data",
+                oldValue: { value: "a" },
+                newValue: ["a", "b"]
+            }
+        ]);
     });
 })

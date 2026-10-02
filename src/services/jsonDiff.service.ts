@@ -33,8 +33,13 @@ export function diffJson(json1: string, json2: string){
             }
             return;
         }
+
         // arrays
-        // TODO: handle cases where olny one side is an array
+
+        if(Array.isArray(oldValue) !== Array.isArray(newValue)){
+            differences.push({path, oldValue, newValue});
+            return;
+        }
         if (Array.isArray(oldValue) && Array.isArray(newValue)) {
             const maxLength = Math.max(oldValue.length, newValue.length);
         
