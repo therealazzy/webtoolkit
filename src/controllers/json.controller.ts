@@ -1,7 +1,8 @@
 import { Request, Response } from 'express'
-import { jsonSchema, jsonDiffSchema } from '../schemas/json.schema'
+import { jsonSchema, jsonDiffSchema, validateSchema } from '../schemas/json.schema'
 import { formatJson, minifyJson } from '../services/json.service';
 import { diffJson } from '../services/jsonDiff.service';
+import { validateJson } from '../services/jsonSchemaValidator.service';
 
 export function formatJsonController(req: Request, res: Response){
     const { json } = jsonSchema.parse(req.body);
@@ -25,4 +26,10 @@ export function diffJsonController(req: Request, res: Response){
     res.json({
         diff: result
     });
+}
+
+export function validateJsonController(req: Request, res: Response){
+    const { data, schema } = validateSchema.parse(req.body);
+    const result = validateJson(data, schema);
+    res.json(result);
 }

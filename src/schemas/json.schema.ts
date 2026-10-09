@@ -8,3 +8,8 @@ export const jsonDiffSchema = z.object({
     json1: z.string(),
     json2: z.string()
 });
+
+export const validateSchema = z.object({
+    data: z.string(),
+    schema: z.string()
+});
