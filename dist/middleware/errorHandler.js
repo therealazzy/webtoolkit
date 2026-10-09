@@ -5,6 +5,7 @@ const zod_1 = require("zod");
 const appError_1 = require("../errors/appError");
 function errorHandler(error, req, res, next) {
     {
+        // handle client errors
         if (error instanceof zod_1.z.ZodError) {
             return res.status(400).json({
                 error: "Invalid request"
@@ -15,6 +16,7 @@ function errorHandler(error, req, res, next) {
                 error: error.message
             });
         }
+        // any other error is simply a generic 505
         return res.status(500).json({
             error: "something went wrong!"
         });

@@ -5,4 +5,5 @@ const json_controller_1 = require("../controllers/json.controller");
 const router = (0, express_1.Router)();
 router.post("/format", json_controller_1.formatJsonController);
 router.post("/minify", json_controller_1.minifyJsonController);
+router.post("/diff", json_controller_1.diffJsonController);
 exports.default = router;

@@ -1,6 +1,7 @@
 import { Request, Response } from 'express'
-import { jsonSchema } from '../schemas/json.schema'
+import { jsonSchema, jsonDiffSchema } from '../schemas/json.schema'
 import { formatJson, minifyJson } from '../services/json.service';
+import { diffJson } from '../services/jsonDiff.service';
 
 export function formatJsonController(req: Request, res: Response){
     const { json } = jsonSchema.parse(req.body);
@@ -15,5 +16,13 @@ export function minifyJsonController(req: Request, res: Response){
     const result = minifyJson(json);
     res.json({
         minified: result
+    });
+}
+
+export function diffJsonController(req: Request, res: Response){
+    const { json1, json2 } = jsonDiffSchema.parse(req.body);
+    const result = diffJson(json1, json2);
+    res.json({
+        diff: result
     });
 }

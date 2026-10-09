@@ -1,6 +1,9 @@
 import { AppError } from "../errors/appError";
 
+// build an interface from collected properties and recursively generates nested interfaces
+// for nested objects and arrays
 function generateInterface(properties: Map<string, unknown[]>, key: string, optionalKeys: Set<string> = new Set()){
+    // keep the nested interfaces seperate so they can be appended after the current interface
     let nestedInterfaces = "";
     const interfaceName = key.charAt(0).toUpperCase() + key.slice(1);
     let result = `interface ${interfaceName} {\n`;
@@ -16,6 +19,7 @@ for(const [nestedKey, nestedValue] of properties){
         nestedType = nestedKey.charAt(0).toUpperCase() + nestedKey.slice(1);
         const properties = collectProperties(nestedValue as Record<string, unknown>[]);
         const optionalKeys = getOptionalKeys(nestedValue as Record<string, unknown>[]);
+        // recursively generate an interface for nested objects
         const nestedResult = generateInterface(properties, nestedKey, optionalKeys);
 
         nestedInterfaces += "\n" + nestedResult;
@@ -32,6 +36,7 @@ result += "}";
 return result + nestedInterfaces;
 }
 
+// collects the disctinct types based on the given values
 function getTypes(values: unknown[]) : Set<string> {
     const types = new Set<string>();
     for(const value of values){
@@ -50,7 +55,9 @@ function getTypes(values: unknown[]) : Set<string> {
     return types;
 }
 
-
+// identifies if a property is optional
+// a property is optional if it does not appear in all objects
+// they need to be marked as optional in the generated interface
 function getOptionalKeys(objects: Record<string, unknown>[]): Set<string>{
     const propertyCounts = new Map<string, number>();
 
@@ -72,6 +79,7 @@ function getOptionalKeys(objects: Record<string, unknown>[]): Set<string>{
     return optionalKeys;
 }
 
+// groups values by property name so their type can be inferred across objects
 function collectProperties(objects: Record<string, unknown>[]) : Map<string, unknown[]> {
     const properties = new Map<string, unknown[]>();
 
@@ -85,8 +93,11 @@ function collectProperties(objects: Record<string, unknown>[]) : Map<string, unk
 }
 
 
-
+// infers an array's element type, handling nested arrays
+// returns both the inferred type and the interfaces required by that type
 function getArrayType(value: unknown[], key: string): { type: string, interfaces: string } {
+    // flatten nested arrays before inferring the element type
+    // only flattens one level by default
     const elements = value.flat();
     const element = elements[0];
 
@@ -96,6 +107,7 @@ function getArrayType(value: unknown[], key: string): { type: string, interfaces
     }
 
     if (typeof element === "object" && element !== null) {
+        // infer an interfact from the array's object elements
         const properties = collectProperties(elements as Record<string, unknown>[]);
         const optionalKeys = getOptionalKeys(elements as Record<string, unknown>[]);
         const nestedResult = generateInterface(properties, key, optionalKeys);
@@ -119,7 +131,7 @@ function getArrayType(value: unknown[], key: string): { type: string, interfaces
     return { type: "unknown[]", interfaces: "" };
 }
 
-
+// parses json and generates a root interface including nested interfaces where needed
 export function jsonToTypescript(json: string){
     let parsed;
     try {
