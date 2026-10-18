@@ -1,0 +1,57 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+
+model ApiKeyOwner {
+  id  String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+
+  apiKeys ApiKey[]
+  inboxes WebhookInbox[]
+}
+
+model ApiKey {
+  id  String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ownerId  String  @db.Uuid
+  name  String
+  keyHash String @unique
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  expiresAt DateTime? @db.Timestamptz(6)
+  revokedAt DateTime? @db.Timestamptz(6)
+
+  owner ApiKeyOwner @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+}
+
+model WebhookInbox {
+  id  String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ownerId String  @db.Uuid
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  expiresAt DateTime  @db.Timestamptz(6)
+
+  owner ApiKeyOwner @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  requests  WebhookRequest[]
+}
+
+model WebhookRequest {
+  id  String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  inboxId String  @db.Uuid
+  method  String
+  headers Json
+  queryParams Json
+  body  Bytes
+  contentType String?
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+
+  inbox WebhookInbox  @relation(fields: [inboxId], references: [id], onDelete: Cascade)
+}
