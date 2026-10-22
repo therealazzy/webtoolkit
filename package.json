@@ -7,7 +7,8 @@
     "start": "node ./dist/server.js",
     "dev": "tsc-watch --onSuccess \"node dist/server.js\"",
     "test": "vitest",
-    "postinstall": "prisma skills sync || exit 0"
+    "postinstall": "prisma skills sync || exit 0",
+    "dev:key": "tsx scripts/create-dev-api-key.ts"
   },
   "repository": {
     "type": "git",
@@ -29,6 +30,7 @@
     "prisma": "^7.10.1",
     "supertest": "^7.3.0",
     "tsc-watch": "^7.2.1",
+    "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vitest": "^4.1.11"
   },
