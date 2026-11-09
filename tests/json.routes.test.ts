@@ -3,9 +3,7 @@ import request from "supertest"
 import app from "../src/app.ts";
 
 vi.mock("../src/lib/prisma", () => ({
-    prisma: {
-        apiKey: { findUnique: vi.fn() },
-    },
+    prisma: {},
 }));
 
 describe("test json endpoints", () => {
