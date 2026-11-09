@@ -1,15 +1,12 @@
 import { prisma } from "../src/lib/prisma"
 import { writeFile, readFile } from "node:fs/promises"
 import path from "node:path"
-import { randomBytes, createHash } from "node:crypto"
+import { randomBytes} from "node:crypto"
+import { hashApiKey } from '../src/lib/apiKey'
 
 const generateApiKey = (): string => {
     const secret = randomBytes(32).toString("base64url");
     return `wt_dev_${secret}`;
-};
-
-const hashApiKey = (apiKey: string): string => {
-    return createHash("sha256").update(apiKey).digest("hex");
 };
 
 const envPath = path.resolve(process.cwd(), ".env");
