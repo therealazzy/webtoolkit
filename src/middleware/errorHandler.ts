@@ -16,6 +16,7 @@ export function errorHandler(error: unknown, req: Request, res: Response, next: 
             })
         }
         // any other error is simply a generic 505
+            console.error(error)
             return res.status(500).json({
             error: "something went wrong!"
         });
