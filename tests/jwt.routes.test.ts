@@ -1,6 +1,12 @@
-import {describe, expect, it } from "vitest"
+import {describe, expect, it, vi } from "vitest"
 import request from "supertest"
-import app from "../src/app.ts";
+import app from "../src/app.ts"
+
+vi.mock("../src/lib/prisma", () => ({
+  prisma: {
+      apiKey: { findUnique: vi.fn() },
+  },
+}));
 
 describe("test jwt endpoints", () => {
     it("inspect endpoint test", async () =>{
