@@ -13,3 +13,9 @@ export async function listInboxes(ownerId: string){
         orderBy: { createdAt: "desc" }
     });
 }
+
+export async function getInbox(ownerId: string, inboxId: string){
+    return await prisma.webhookInbox.findFirst({
+        where: { id: inboxId, ownerId}
+    })
+}
