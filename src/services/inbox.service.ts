@@ -6,3 +6,10 @@ export async function createInbox(ownerId: string){
         data: {ownerId, expiresAt: new Date(Date.now() + INBOX_LIFETIME_MS)}
     });
 }
+
+export async function listInboxes(ownerId: string){
+    return await prisma.webhookInbox.findMany({
+        where: { ownerId },
+        orderBy: { createdAt: "desc" }
+    });
+}
