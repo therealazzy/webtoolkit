@@ -1,0 +1,8 @@
+import { prisma } from "../lib/prisma";
+
+const INBOX_LIFETIME_MS = 24 * 60 * 60 * 1000;
+export async function createInbox(ownerId: string){
+    return await prisma.webhookInbox.create({
+        data: {ownerId, expiresAt: new Date(Date.now() + INBOX_LIFETIME_MS)}
+    });
+}
