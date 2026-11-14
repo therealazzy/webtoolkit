@@ -41,6 +41,7 @@ model WebhookInbox {
 
   owner ApiKeyOwner @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   requests  WebhookRequest[]
+  @@index([ownerId, createdAt])
 }
 
 model WebhookRequest {
