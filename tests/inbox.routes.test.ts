@@ -6,7 +6,7 @@
     vi.mock("../src/lib/prisma", () =>({
         prisma: {
             apiKey: { findUnique: vi.fn() },
-            webhookInbox: { create: vi.fn(), findMany: vi.fn(), findFirst: vi.fn() },
+            webhookInbox: { create: vi.fn(), findMany: vi.fn(), findFirst: vi.fn(), deleteMany: vi.fn() },
         }
     }));
 
@@ -40,6 +40,7 @@
     const create = vi.mocked(prisma.webhookInbox.create);
     const findMany = vi.mocked(prisma.webhookInbox.findMany);
     const findFirst = vi.mocked(prisma.webhookInbox.findFirst);
+    const deleteMany = vi.mocked(prisma.webhookInbox.deleteMany);
     const UNAUTHORISED = { error: "Invalid or missing API key"};
 
     describe("POST /api/v1/inboxes", () =>{
@@ -139,68 +140,122 @@
                 where: { ownerId }, orderBy: { createdAt: "desc" }
             })
         })
+    });
 
-        describe("GET /api/v1/inboxes/:inboxId", () =>{
-            beforeEach(() =>{
-                 vi.resetAllMocks();
-            });
+    describe("GET /api/v1/inboxes/:inboxId", () =>{
+        beforeEach(() =>{
+             vi.resetAllMocks();
+        });
 
-            const inboxID = "00000000-0000-4000-8000-000000000001";
+        const inboxID = "00000000-0000-4000-8000-000000000001";
 
-            it("returns 401 when no key present", async () =>{
-            const response = await request(app).get(`/api/v1/inboxes/${inboxID}`);
+        it("returns 401 when no key present", async () =>{
+        const response = await request(app).get(`/api/v1/inboxes/${inboxID}`);
 
+        expect(response.status).toBe(401);
+        expect(response.body).toEqual(UNAUTHORISED);
+        expect(findFirst).not.toHaveBeenCalled();
+        }),
+        it("returns 200 when inbox found", async () =>{
+        const ownerId = "owner-abc";
+        const inbox = makeInbox({id: inboxID, ownerId});
+        findUnique.mockResolvedValue(makeApiKey({ ownerId }));
+        findFirst.mockResolvedValue(inbox);
+
+        const response = await request(app).get(`/api/v1/inboxes/${inboxID}`).set("X-API-KEY", "wt_dev_valid");
+
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual({
+            id: inboxID,
+            expiresAt: inbox.expiresAt.toISOString(),
+            webhookUrl: `http://localhost:3000/hooks/${inbox.id}`
+        });
+        }),
+        it("query is scoped to the owner", async() =>{
+        const ownerId = "owner-abc";
+        const inbox = makeInbox({id: inboxID, ownerId});
+        findUnique.mockResolvedValue(makeApiKey({ ownerId }));
+        findFirst.mockResolvedValue(inbox);
+
+
+        await request(app).get(`/api/v1/inboxes/${inboxID}`).set("X-API-KEY", "wt_dev_valid");
+
+        expect(findFirst).toHaveBeenCalledWith({
+            where: { id: inboxID, ownerId}
+        })
+        }),
+        it("returns 404 when the inbox is not found", async () => {
+            findUnique.mockResolvedValue(makeApiKey());
+            findFirst.mockResolvedValue(null);
+        
+            const response = await request(app).get(`/api/v1/inboxes/${inboxID}`).set("X-API-KEY", "wt_dev_valid");
+        
+            expect(response.status).toBe(404);
+            expect(response.body).toEqual({ error: "Inbox not found" });
+        }),
+        it("returns 400 for an invalid inbox ID without querying the database", async () => {
+            findUnique.mockResolvedValue(makeApiKey());
+        
+            const response = await request(app).get("/api/v1/inboxes/hello").set("X-API-KEY", "wt_dev_valid");
+        
+            expect(response.status).toBe(400);
+            expect(response.body).toEqual({ error: "Invalid request" });
+            expect(findFirst).not.toHaveBeenCalled();
+        })
+    });
+
+
+    describe("DELETE /api/v1/inboxes/:inboxId", () =>{
+        beforeEach(() =>{
+            vi.resetAllMocks();
+        });
+        
+        const inboxID = "00000000-0000-4000-8000-000000000001";
+
+        it("returns a 401 when no key provided", async() =>{
+            const response = await request(app).delete(`/api/v1/inboxes/${inboxID}`);
+            
             expect(response.status).toBe(401);
             expect(response.body).toEqual(UNAUTHORISED);
-            expect(findFirst).not.toHaveBeenCalled();
-            }),
-            it("returns 200 when inbox found", async () =>{
+            expect(deleteMany).not.toHaveBeenCalled();
+        }),
+        it("returns a 204 when successfully deleted", async() =>{
             const ownerId = "owner-abc";
-            const inbox = makeInbox({id: inboxID, ownerId});
-            findUnique.mockResolvedValue(makeApiKey({ ownerId }));
-            findFirst.mockResolvedValue(inbox);
+            findUnique.mockResolvedValue(makeApiKey({ownerId}));
+            deleteMany.mockResolvedValue({ count: 1});
 
-            const response = await request(app).get(`/api/v1/inboxes/${inboxID}`).set("X-API-KEY", "wt_dev_valid");
+            const response = await request(app).delete(`/api/v1/inboxes/${inboxID}`).set("X-API-KEY", "wt_dev_valid");
 
-            expect(response.status).toBe(200);
-            expect(response.body).toEqual({
-                id: inboxID,
-                expiresAt: inbox.expiresAt.toISOString(),
-                webhookUrl: `http://localhost:3000/hooks/${inbox.id}`
-            });
-            }),
-            it("query is scoped to the owner", async() =>{
+            expect(response.status).toBe(204);
+            expect(response.body).toEqual({});
+        }),
+        it("scoped delete", async() =>{
             const ownerId = "owner-abc";
-            const inbox = makeInbox({id: inboxID, ownerId});
-            findUnique.mockResolvedValue(makeApiKey({ ownerId }));
-            findFirst.mockResolvedValue(inbox);
+            findUnique.mockResolvedValue(makeApiKey({ownerId}));
+            deleteMany.mockResolvedValue({ count: 1});
 
+            await request(app).delete(`/api/v1/inboxes/${inboxID}`).set("X-API-KEY", "wt_dev_valid");
 
-            await request(app).get(`/api/v1/inboxes/${inboxID}`).set("X-API-KEY", "wt_dev_valid");
+            expect(deleteMany).toHaveBeenCalledWith({where: { id: inboxID, ownerId}});
+        }),
+        it("returns 404 if inbox not found", async() =>{
+            findUnique.mockResolvedValue(makeApiKey());
+            deleteMany.mockResolvedValue({count: 0});
 
-            expect(findFirst).toHaveBeenCalledWith({
-                where: { id: inboxID, ownerId}
-            })
-            }),
-            it("returns 404 when the inbox is not found", async () => {
-                findUnique.mockResolvedValue(makeApiKey());
-                findFirst.mockResolvedValue(null);
-            
-                const response = await request(app).get(`/api/v1/inboxes/${inboxID}`).set("X-API-KEY", "wt_dev_valid");
-            
-                expect(response.status).toBe(404);
-                expect(response.body).toEqual({ error: "Inbox not found" });
-            }),
-            it("returns 400 for an invalid inbox ID without querying the database", async () => {
-                findUnique.mockResolvedValue(makeApiKey());
-            
-                const response = await request(app).get("/api/v1/inboxes/hello").set("X-API-KEY", "wt_dev_valid");
-            
-                expect(response.status).toBe(400);
-                expect(response.body).toEqual({ error: "Invalid request" });
-                expect(findFirst).not.toHaveBeenCalled();
-            })
+            const response = await request(app).delete(`/api/v1/inboxes/${inboxID}`).set("X-API-KEY", "wt_dev_valid");
+
+            expect(response.status).toBe(404);
+            expect(response.body).toEqual({ error: "Inbox not found"});
+        }),
+        it("returns 400 for an invalid inboxId without deleting anything", async() =>{
+            findUnique.mockResolvedValue(makeApiKey());
+            deleteMany.mockResolvedValue({count: 0});
+
+            const response = await request(app).delete(`/api/v1/inboxes/wrongId`).set("X-API-KEY", "wt_dev_valid");
+
+            expect(response.status).toBe(400);
+            expect(response.body).toEqual({ error: "Invalid request"});
+            expect(deleteMany).not.toHaveBeenCalled();
         })
-
-    });
+    })
         

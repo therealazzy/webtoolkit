@@ -1,11 +1,11 @@
 import {Request, Response} from 'express';
-import { createInbox, getInbox, listInboxes } from '../services/inbox.service';
+import { createInbox, deleteInbox, getInbox, listInboxes } from '../services/inbox.service';
 import { PUBLIC_BASE_URL } from '../config';
 import type { WebhookInbox } from '../generated/prisma/client';
 import { inboxIdSchema } from '../schemas/inbox.schema';
 import { AppError } from '../errors/appError';
 
-//helper fun ownerid checking
+//helper for ownerid checking
 function requireOwnerId(req: Request) : string{
     if(req.ownerId == null) throw new Error("requireApiKey did not set req.ownerId");
     return req.ownerId;
@@ -42,4 +42,14 @@ export async function getInboxController(req: Request, res: Response){
         throw new AppError("Inbox not found", 404);
     }
     res.json(toInboxResponse(inbox));
+}
+
+export async function deleteInboxController(req: Request, res: Response){
+    const ownerId = requireOwnerId(req);
+    const { inboxId } = inboxIdSchema.parse(req.params);
+    const deleted = await deleteInbox(ownerId, inboxId);
+    if(!deleted){
+        throw new AppError("Inbox not found", 404);
+    }
+    res.sendStatus(204);
 }

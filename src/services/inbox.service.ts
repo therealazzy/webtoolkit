@@ -19,3 +19,10 @@ export async function getInbox(ownerId: string, inboxId: string){
         where: { id: inboxId, ownerId}
     })
 }
+
+export async function deleteInbox(ownerId: string, inboxId: string){
+    const { count } = await prisma.webhookInbox.deleteMany({
+        where: {id: inboxId, ownerId}
+    })
+    return count > 0;
+}
