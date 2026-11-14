@@ -29,4 +29,6 @@ jobs:
         run: npm run build
 
       - name: Run Vitest
-        run: npm test -- --run
+        run: npm test -- --run 
+        env:
+          PUBLIC_BASE_URL: http://localhost:3000
