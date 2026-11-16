@@ -10,10 +10,10 @@ A backend API for developer utilities: JWT and JSON tools, plus a webhook-testin
 |---|---|
 | Runtime / language | Node.js 24, TypeScript (strict) |
 | HTTP | Express 5 |
-| Database | PostgreSQL (Supabase), Prisma ORM with migrations |
+| Database | PostgreSQL (Supabase), Prisma ORM |
 | Validation | Zod |
 | Testing | Vitest, Supertest |
-| CI | GitHub Actions: install, generate client, build, test |
+| CI | GitHub Actions |
 
 ## API
 
