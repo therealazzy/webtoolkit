@@ -55,4 +55,5 @@ model WebhookRequest {
   createdAt DateTime  @default(now()) @db.Timestamptz(6)
 
   inbox WebhookInbox  @relation(fields: [inboxId], references: [id], onDelete: Cascade)
+  @@index([inboxId, createdAt])
 }
