@@ -7,6 +7,7 @@
         prisma: {
             apiKey: { findUnique: vi.fn() },
             webhookInbox: { create: vi.fn(), findMany: vi.fn(), findFirst: vi.fn(), deleteMany: vi.fn() },
+            webhookRequest: {findMany: vi.fn() }
         }
     }));
 
@@ -31,7 +32,17 @@
             id: "id-1",
             ownerId: "owner-123",
             createdAt: new Date("2026-11-10T12:00:00.000Z"),
-            expiresAt: new Date("2026-11-11T12:00:00.000Z"),
+            expiresAt: new Date("2099-11-11T12:00:00.000Z"),
+            ...overrides,
+        };
+    }
+
+    function makeRequestSummary(overrides = {}) {
+        return { 
+            id: "00000000-0000-4000-8000-000000000001",
+            method: "POST",
+            contentType: "application/json",
+            createdAt: new Date("2026-11-18T12:00:00.000Z"),
             ...overrides,
         };
     }
@@ -41,6 +52,7 @@
     const findMany = vi.mocked(prisma.webhookInbox.findMany);
     const findFirst = vi.mocked(prisma.webhookInbox.findFirst);
     const deleteMany = vi.mocked(prisma.webhookInbox.deleteMany);
+    const findManyR = vi.mocked(prisma.webhookRequest.findMany);
     const UNAUTHORISED = { error: "Invalid or missing API key"};
 
     describe("POST /api/v1/inboxes", () =>{
@@ -257,5 +269,123 @@
             expect(response.body).toEqual({ error: "Invalid request"});
             expect(deleteMany).not.toHaveBeenCalled();
         })
-    })
+    });
+
+    describe("GET /api/v1/inboxes/:inboxId/requests", () =>{
+        beforeEach(() =>{
+            vi.resetAllMocks();
+        });
+
+        const inboxID = "00000000-0000-4000-8000-000000000001";
+        const ownerId = "owner-001"
+
+
+        it("returns 401 for no key provided", async() =>{
+
+            const response = await request(app).get(`/api/v1/inboxes/${inboxID}/requests`);
+
+            expect(findManyR).not.toHaveBeenCalled();
+            expect(response.status).toBe(401);
+
+        }),
+        it("returns 404 for inbox not yours or not found", async() =>{
+            findFirst.mockResolvedValue(null);
+            findUnique.mockResolvedValue(makeApiKey({ownerId}));
+
+            const response = await request(app).get(`/api/v1/inboxes/${inboxID}/requests`).set("X-API-KEY", "wt_dev_valid");
+
+            expect(response.status).toBe(404);
+            expect(findManyR).not.toHaveBeenCalled();
+        }),
+        it("get a 400 for invalid inbox", async() =>{
+            findUnique.mockResolvedValue(makeApiKey({ownerId}));
+
+            const response = await request(app).get(`/api/v1/inboxes/oops/requests`).set("X-API-KEY", "wt_dev_valid");
+
+            expect(findFirst).not.toHaveBeenCalled();
+            expect(findManyR).not.toHaveBeenCalled();
+            expect(response.status).toBe(400);
+        }),
+        it("returns a 400 for invalid query", async() =>{
+            findUnique.mockResolvedValue(makeApiKey({ownerId}));
+            const response = await request(app).get(`/api/v1/inboxes/${inboxID}/requests?cursor=oops`).set("X-API-KEY", "wt_dev_valid");
+
+            expect(findFirst).not.toHaveBeenCalled();
+            expect(findManyR).not.toHaveBeenCalled();
+            expect(response.status).toBe(400);
+        }),
+        it("returns last page", async() =>{
+            const ownerId = "owner-abc";
+            const req1 = makeRequestSummary({id: "00000000-0000-4000-8000-000000000001"});
+            const req2 = makeRequestSummary({id: "00000000-0000-4000-8000-000000000002"});
+            findUnique.mockResolvedValue(makeApiKey({ownerId}));
+            findFirst.mockResolvedValue(makeInbox({ id:inboxID, ownerId}));
+            findManyR.mockResolvedValue([req1,req2] as never);
+
+            const response = await request(app).get(`/api/v1/inboxes/${inboxID}/requests?limit=10`).set("X-API-KEY", "wt_dev_valid");
+
+            expect(response.status).toBe(200);
+            expect(response.body).toEqual({
+                requests: [
+                    { ...req1, createdAt: req1.createdAt.toISOString() },
+                    { ...req2, createdAt: req2.createdAt.toISOString() },
+                ],
+                nextCursor: null,
+            });
+        }),
+        it("returns last request's id to be in nextcursor when the limit is smaller than the size of the rows", async() =>{
+            const ownerId = "owner-abc";
+            const req1 = makeRequestSummary({id: "00000000-0000-4000-8000-000000000001"});
+            const req2 = makeRequestSummary({id: "00000000-0000-4000-8000-000000000002"});
+            const req3 = makeRequestSummary({id: "00000000-0000-4000-8000-000000000003"});
+            findUnique.mockResolvedValue(makeApiKey({ownerId}));
+            findFirst.mockResolvedValue(makeInbox({ id:inboxID, ownerId}));
+            findManyR.mockResolvedValue([req1,req2, req3] as never);
+
+            const response = await request(app).get(`/api/v1/inboxes/${inboxID}/requests?limit=2`).set("X-API-KEY", "wt_dev_valid");
+
+            expect(response.status).toBe(200);
+            expect(response.body).toEqual({
+                requests: [
+                    { ...req1, createdAt: req1.createdAt.toISOString() },
+                    { ...req2, createdAt: req2.createdAt.toISOString() },
+                ],
+                nextCursor: "00000000-0000-4000-8000-000000000002",
+            });
+        }),
+        it("db to have been queried for the first page correctly", async() =>{
+            const ownerId = "owner-abc";
+            const req1 = makeRequestSummary({id: "00000000-0000-4000-8000-000000000001"});
+            const req2 = makeRequestSummary({id: "00000000-0000-4000-8000-000000000002"});
+            findUnique.mockResolvedValue(makeApiKey({ownerId}));
+            findFirst.mockResolvedValue(makeInbox({ id:inboxID, ownerId}));
+            findManyR.mockResolvedValue([req1,req2] as never);
+
+            const response = await request(app).get(`/api/v1/inboxes/${inboxID}/requests?limit=10`).set("X-API-KEY", "wt_dev_valid");
+
+            expect(findManyR).toHaveBeenCalledWith({
+                where: { inboxId: inboxID },
+                orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+                select: { id: true, method: true, contentType: true, createdAt: true },
+                take: 11,
+            });
+        }),
+        it("db to have been called with correct cursor parameter", async() =>{
+            const ownerId = "owner-abc";
+            const req1 = makeRequestSummary({id: "00000000-0000-4000-8000-000000000001"});
+            const req2 = makeRequestSummary({id: "00000000-0000-4000-8000-000000000002"});
+            findUnique.mockResolvedValue(makeApiKey({ownerId}));
+            findFirst.mockResolvedValue(makeInbox({ id:inboxID, ownerId}));
+            findManyR.mockResolvedValue([req1,req2] as never);
+
+            const response = await request(app).get(`/api/v1/inboxes/${inboxID}/requests?cursor=00000000-0000-4000-8000-000000000002`).set("X-API-KEY", "wt_dev_valid");
+
+            expect(findManyR).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    cursor: { id: "00000000-0000-4000-8000-000000000002" },
+                    skip: 1,
+                }),
+            );
+        })
+    });
         
