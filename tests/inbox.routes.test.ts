@@ -7,7 +7,7 @@
         prisma: {
             apiKey: { findUnique: vi.fn() },
             webhookInbox: { create: vi.fn(), findMany: vi.fn(), findFirst: vi.fn(), deleteMany: vi.fn() },
-            webhookRequest: {findMany: vi.fn() }
+            webhookRequest: {findMany: vi.fn(), findFirst: vi.fn() }
         }
     }));
 
@@ -47,10 +47,25 @@
         };
     }
 
+    function makeRequest(overrides = {}) {
+        return {
+            id: "00000000-0000-4000-8000-0000000000a1",
+            inboxId: "00000000-0000-4000-8000-000000000001",
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            queryParams: {},
+            body: new Uint8Array(Buffer.from('{"event":"ping"}')),
+            contentType: "application/json",
+            createdAt: new Date("2026-11-18T12:00:00.000Z"),
+            ...overrides,
+        };
+    }
+
     const findUnique = vi.mocked(prisma.apiKey.findUnique);
     const create = vi.mocked(prisma.webhookInbox.create);
     const findMany = vi.mocked(prisma.webhookInbox.findMany);
     const findFirst = vi.mocked(prisma.webhookInbox.findFirst);
+    const findFirstR = vi.mocked(prisma.webhookRequest.findFirst);
     const deleteMany = vi.mocked(prisma.webhookInbox.deleteMany);
     const findManyR = vi.mocked(prisma.webhookRequest.findMany);
     const UNAUTHORISED = { error: "Invalid or missing API key"};
@@ -388,4 +403,100 @@
             );
         })
     });
-        
+
+    describe("GET /api/v1/inboxes/:inboxId/requests/:requestId", () =>{
+        beforeEach(() =>{
+            vi.resetAllMocks();
+        });
+
+        const inboxID = "00000000-0000-4000-8000-000000000001";
+        const ownerId = "owner-001"
+        const requestId = "00000000-0000-4000-8000-0000000000a1"
+
+        it("returns a 401 when no key is provided", async() => {
+            const response = await request(app).get(`/api/v1/inboxes/${inboxID}/requests/${requestId}`);
+
+            expect(findFirstR).not.toHaveBeenCalled();
+            expect(response.status).toBe(401);
+        }),
+        it("returns 400 for invalid id", async() => {
+            findUnique.mockResolvedValue(makeApiKey({ownerId}));
+
+            const response = await request(app).get(`/api/v1/inboxes/${inboxID}/requests/oops`).set("X-API-KEY", "wt_dev_valid");
+
+            expect(response.status).toBe(400);
+            expect(findFirstR).not.toHaveBeenCalled();
+        }),
+        it("returns 404 if the response was not found", async() =>{
+            findUnique.mockResolvedValue(makeApiKey({ownerId}));
+            findFirstR.mockResolvedValue(null);
+
+            const response = await request(app).get(`/api/v1/inboxes/${inboxID}/requests/${requestId}`).set("X-API-KEY", "wt_dev_valid");
+
+            expect(response.status).toBe(404);
+            expect(response.body).toEqual({
+                error: "Request not found"
+            });
+        }),
+        it("return a 200 success if it successfully retreived and decoded the request", async() =>{
+            const requestResponse = makeRequest();
+            findUnique.mockResolvedValue(makeApiKey({ownerId}));
+            findFirstR.mockResolvedValue(requestResponse);
+
+            const response = await request(app).get(`/api/v1/inboxes/${inboxID}/requests/${requestId}`).set("X-API-KEY", "wt_dev_valid");
+
+            expect(response.status).toBe(200);
+            expect(response.body).toEqual({
+                id: requestResponse.id,
+                method: requestResponse.method,
+                headers: requestResponse.headers,
+                queryParams: requestResponse.queryParams,
+                contentType: requestResponse.contentType,
+                createdAt: requestResponse.createdAt.toISOString(),
+                body: '{"event":"ping"}',
+                bodyEncoding: "utf8",
+            });
+        }),
+        it("scoped query test", async() =>{
+            const requestResponse = makeRequest();
+            findUnique.mockResolvedValue(makeApiKey({ownerId}));
+            findFirstR.mockResolvedValue(requestResponse);
+
+            await request(app).get(`/api/v1/inboxes/${inboxID}/requests/${requestId}`).set("X-API-KEY", "wt_dev_valid");
+
+            expect(findFirstR).toHaveBeenCalledWith({
+                where: { id: requestId, inboxId: inboxID, inbox: { ownerId}}
+            });
+        }),
+        it("correctly decodes binary content", async() =>{
+            const payload = '{"event":"ping"}';
+            const requestResponse = makeRequest({ contentType: "application/octet-stream", body: new Uint8Array(Buffer.from(payload))});
+            findUnique.mockResolvedValue(makeApiKey({ownerId}));
+            findFirstR.mockResolvedValue(requestResponse);
+
+            const response = await request(app).get(`/api/v1/inboxes/${inboxID}/requests/${requestId}`).set("X-API-KEY", "wt_dev_valid");
+
+            expect(response.body.bodyEncoding).toBe("base64");
+            expect(response.body.body).toBe(Buffer.from(payload).toString("base64"));
+        }),
+        it("correctly decodes json content", async() =>{
+            const requestResponse = makeRequest({ contentType: "application/json"});
+            findUnique.mockResolvedValue(makeApiKey({ownerId}));
+            findFirstR.mockResolvedValue(requestResponse);
+
+            const response = await request(app).get(`/api/v1/inboxes/${inboxID}/requests/${requestId}`).set("X-API-KEY", "wt_dev_valid");
+
+            expect(response.body.bodyEncoding).toBe("utf8");
+            expect(response.body.body).toBe('{"event":"ping"}');
+        }),
+        it("missing content type falls back to base64", async() =>{
+            const requestResponse = makeRequest({ contentType: ""});
+            findUnique.mockResolvedValue(makeApiKey({ownerId}));
+            findFirstR.mockResolvedValue(requestResponse);
+
+            const response = await request(app).get(`/api/v1/inboxes/${inboxID}/requests/${requestId}`).set("X-API-KEY", "wt_dev_valid");
+
+            expect(response.body.bodyEncoding).toBe("base64");
+        })
+
+    });
