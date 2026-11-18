@@ -1,6 +1,19 @@
 import { getInbox } from "./inbox.service";
 import { prisma } from "../lib/prisma";
 
+const TEXT_CONTENT_TYPES = ["application/json", "application/xml","application/x-www-form-urlencoded"];
+
+function isTextType(contentType: string | null): boolean {
+
+    if(contentType == null){
+        return false;
+    }
+    const stripped = contentType.split(";")[0].trim().toLowerCase();
+    return stripped.startsWith("text/") || TEXT_CONTENT_TYPES.includes(stripped)
+
+}
+
+
 export async function listRequests(ownerId: string, inboxId: string, options: {limit: number; cursor?: string}){
     const exists = await getInbox(ownerId, inboxId);
 
@@ -21,5 +34,22 @@ export async function listRequests(ownerId: string, inboxId: string, options: {l
     const nextCursor = hasNext ? page[page.length - 1].id : null;
 
     return { requests: page, nextCursor};
+}
+
+
+export async function getRequest(ownerId: string, inboxId: string, requestId: string){
+    const row = await prisma.webhookRequest.findFirst({
+        where: {id: requestId, inboxId, inbox: { ownerId }}
+    })
+
+    if(row == null){
+        return null;
+    }
+
+    const bodyEncoding = isTextType(row.contentType) ? "utf8" : "base64";
+
+    const body = Buffer.from(row.body).toString(bodyEncoding);
+
+    return { id: row.id, headers: row.headers, method: row.method, queryParams: row.queryParams, contentType: row.contentType, createdAt: row.createdAt, body, bodyEncoding};
 
 }

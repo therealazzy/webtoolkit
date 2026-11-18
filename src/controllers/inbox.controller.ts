@@ -2,9 +2,9 @@ import {Request, Response} from 'express';
 import { createInbox, deleteInbox, getInbox, listInboxes } from '../services/inbox.service';
 import { PUBLIC_BASE_URL } from '../config';
 import type { WebhookInbox } from '../generated/prisma/client';
-import { inboxIdSchema, listRequestsQuerySchema } from '../schemas/inbox.schema';
+import { inboxIdSchema, listRequestsQuerySchema, requestParamsSchema } from '../schemas/inbox.schema';
 import { AppError } from '../errors/appError';
-import { listRequests } from '../services/request.service';
+import { getRequest, listRequests } from '../services/request.service';
 
 //helper for ownerid checking
 function requireOwnerId(req: Request) : string{
@@ -63,6 +63,18 @@ export async function listRequestsController(req: Request, res: Response){
 
     if(result == null){
         throw new AppError("Inbox not found", 404);
+    }
+
+    res.json(result);
+}
+
+export async function getRequestController(req: Request, res: Response){
+    const ownerId = requireOwnerId(req);
+    const { inboxId, requestId } = requestParamsSchema.parse(req.params);
+
+    const result = await getRequest(ownerId, inboxId, requestId);
+    if(result == null){
+        throw new AppError("Request not found", 404);
     }
 
     res.json(result);
