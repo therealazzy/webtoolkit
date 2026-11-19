@@ -39,7 +39,7 @@ export async function listRequests(ownerId: string, inboxId: string, options: {l
 
 export async function getRequest(ownerId: string, inboxId: string, requestId: string){
     const row = await prisma.webhookRequest.findFirst({
-        where: {id: requestId, inboxId, inbox: { ownerId }}
+        where: {id: requestId, inboxId, inbox: { ownerId, expiresAt: {gt: new Date()} }}
     })
 
     if(row == null){
