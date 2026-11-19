@@ -9,20 +9,20 @@ export async function createInbox(ownerId: string){
 
 export async function listInboxes(ownerId: string){
     return await prisma.webhookInbox.findMany({
-        where: { ownerId },
+        where: { ownerId, expiresAt: { gt: new Date()} },
         orderBy: { createdAt: "desc" }
     });
 }
 
 export async function getInbox(ownerId: string, inboxId: string){
     return await prisma.webhookInbox.findFirst({
-        where: { id: inboxId, ownerId}
+        where: { id: inboxId, ownerId, expiresAt: { gt: new Date()}}
     })
 }
 
 export async function deleteInbox(ownerId: string, inboxId: string){
     const { count } = await prisma.webhookInbox.deleteMany({
-        where: {id: inboxId, ownerId}
+        where: {id: inboxId, ownerId, expiresAt: {gt: new Date()}}
     })
     return count > 0;
 }

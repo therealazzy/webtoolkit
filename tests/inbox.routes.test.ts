@@ -2,6 +2,7 @@
     import request from 'supertest'
     import { prisma } from '../src/lib/prisma'
     import app from "../src/app"
+import { date } from "zod";
 
     vi.mock("../src/lib/prisma", () =>({
         prisma: {
@@ -164,7 +165,7 @@
             await request(app).get("/api/v1/inboxes").set("X-API-KEY", "wt_dev_valid");
             
             expect(findMany).toHaveBeenCalledWith({
-                where: { ownerId }, orderBy: { createdAt: "desc" }
+                where: { ownerId, expiresAt: {gt: expect.any(Date)} }, orderBy: { createdAt: "desc" }
             })
         })
     });
@@ -208,7 +209,7 @@
         await request(app).get(`/api/v1/inboxes/${inboxID}`).set("X-API-KEY", "wt_dev_valid");
 
         expect(findFirst).toHaveBeenCalledWith({
-            where: { id: inboxID, ownerId}
+            where: { id: inboxID, ownerId, expiresAt: {gt: expect.any(Date)}}
         })
         }),
         it("returns 404 when the inbox is not found", async () => {
@@ -263,7 +264,7 @@
 
             await request(app).delete(`/api/v1/inboxes/${inboxID}`).set("X-API-KEY", "wt_dev_valid");
 
-            expect(deleteMany).toHaveBeenCalledWith({where: { id: inboxID, ownerId}});
+            expect(deleteMany).toHaveBeenCalledWith({where: { id: inboxID, ownerId, expiresAt: {gt: expect.any(Date)}}});
         }),
         it("returns 404 if inbox not found", async() =>{
             findUnique.mockResolvedValue(makeApiKey());
@@ -465,7 +466,7 @@
             await request(app).get(`/api/v1/inboxes/${inboxID}/requests/${requestId}`).set("X-API-KEY", "wt_dev_valid");
 
             expect(findFirstR).toHaveBeenCalledWith({
-                where: { id: requestId, inboxId: inboxID, inbox: { ownerId}}
+                where: { id: requestId, inboxId: inboxID, inbox: { ownerId, expiresAt: {gt: expect.any(Date)}}}
             });
         }),
         it("correctly decodes binary content", async() =>{
