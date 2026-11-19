@@ -1,7 +1,15 @@
 import app from "./app"
+import { startCleanupSchedule } from "./jobs/cleanupExpiredInboxes";
 
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
-app.listen(PORT, () =>{
+const server = app.listen(PORT, () =>{
     console.log(`listening on port ${PORT}`)
+});
+
+const cleanupJob = startCleanupSchedule();
+
+process.on("SIGTERM", () =>{
+    cleanupJob.stop();
+    server.close();
 });
