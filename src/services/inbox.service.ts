@@ -26,3 +26,28 @@ export async function deleteInbox(ownerId: string, inboxId: string){
     })
     return count > 0;
 }
+
+const BATCH_SIZE = 1000;
+
+export async function deleteExpiredInboxes(now: Date): Promise<number> {
+    let total = 0;
+
+    while(true){
+        const batch = await prisma.webhookInbox.findMany({
+            where: {expiresAt: { lte: now }},
+            select: {id: true},
+            take: BATCH_SIZE,
+        });
+
+        if(batch.length === 0) break;
+
+        const { count } = await prisma.webhookInbox.deleteMany({
+            where: {id: {in: batch.map((inbox) => inbox.id)}},
+        });
+
+        if(count === 0 ) break;
+
+        total += count;
+    }
+    return total;
+}
