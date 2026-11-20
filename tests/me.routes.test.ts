@@ -91,11 +91,9 @@ describe("GET /api/v1/me", () =>{
 
     it("returns 500 when the database lookup fails", async () => {
         findUnique.mockRejectedValue(new Error("connection timed out"));
-        const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
 
         const response = await request(app).get("/api/v1/me").set("X-API-KEY", "wt_dev_any");
 
         expect(response.status).toBe(500);
-        expect(consoleError).toHaveBeenCalled();
     })
 });

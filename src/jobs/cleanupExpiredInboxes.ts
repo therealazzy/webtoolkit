@@ -1,5 +1,6 @@
 import cron from "node-cron";
 import { deleteExpiredInboxes } from "../services/inbox.service";
+import { logger } from "../lib/logger";
 
 let running = false;
 export async function runCleanup(): Promise<void>{
@@ -8,9 +9,9 @@ export async function runCleanup(): Promise<void>{
 
     try {
         const deleted = await deleteExpiredInboxes(new Date());
-        console.log(`[Cleanup] deleted ${deleted} expired inboxes`);
+        logger.info({ deleted }, "Cleanup finished");
     } catch (error) {
-        console.error("[Cleanup] failed", error);
+        logger.error({err: error}, "Cleanup failed");
     } finally {
         running = false;
     }
