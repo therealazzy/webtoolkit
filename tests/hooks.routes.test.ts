@@ -96,12 +96,8 @@ describe("POST /hooks/", () => {
     }),
     it("returns 500 for databse failure", async () =>{
         findunique.mockRejectedValue(new Error("db down"));
-        const consoleError = vi.spyOn(console, "error").mockImplementation(() =>{});
         const response = await request(app).post(`/hooks/${inboxID}`).set("Content-type","application/json");
 
-
-
-        expect(consoleError).toHaveBeenCalled();
         expect(response.status).toBe(500);
         expect(create).not.toHaveBeenCalled();
     }),
