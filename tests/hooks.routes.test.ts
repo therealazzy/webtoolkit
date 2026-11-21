@@ -15,7 +15,7 @@ function makeInbox(overrides = {}) {
         id: "id-1",
         ownerId: "owner-123",
         createdAt: new Date("2026-11-10T12:00:00.000Z"),
-        expiresAt: new Date("2026-11-21T12:00:00.000Z"),
+        expiresAt: new Date("2099-11-21T12:00:00.000Z"),
         ...overrides,
     };
 }
