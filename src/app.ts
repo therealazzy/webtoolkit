@@ -16,8 +16,8 @@ const app = express();
 
 app.set("trust proxy", 1);
 app.use(pinoHttp({ logger }));
-app.use("/health", healthRouter);
 const ipLimiter = createRateLimiter({windowMs: 60_000, max: 100, keyFn: (req) => req.ip});
+app.use("/health", healthRouter);
 app.use(ipLimiter);
 app.use("/api", express.json());
 app.use("/api/v1/jwt", jwtRouter);
