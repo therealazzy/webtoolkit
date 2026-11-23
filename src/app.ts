@@ -9,19 +9,22 @@ import healthRouter from "./routes/health.routes";
 import { errorHandler } from "./middleware/errorHandler";
 import { pinoHttp } from "pino-http";
 import { logger } from "./lib/logger";
+import { createRateLimiter } from "./middleware/rateLimiter";
 
 
 const app = express();
 
+app.set("trust proxy", 1);
 app.use(pinoHttp({ logger }));
-
+app.use("/health", healthRouter);
+const ipLimiter = createRateLimiter({windowMs: 60_000, max: 100, keyFn: (req) => req.ip});
+app.use(ipLimiter);
 app.use("/api", express.json());
 app.use("/api/v1/jwt", jwtRouter);
 app.use("/api/v1/json", jsonRouter);
 app.use("/api/v1/me", meRouter);
 app.use("/api/v1/inboxes", inboxRouter);
 app.use("/hooks", hooksRouter);
-app.use("/health", healthRouter);
 app.use(errorHandler);
 
 export default app;
