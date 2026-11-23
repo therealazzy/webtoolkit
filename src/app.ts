@@ -14,7 +14,7 @@ import { createRateLimiter } from "./middleware/rateLimiter";
 
 const app = express();
 
-app.set("trust proxy", 1);
+app.set("trust proxy", 2);
 app.use(pinoHttp({ logger }));
 const ipLimiter = createRateLimiter({windowMs: 60_000, max: 100, keyFn: (req) => req.ip});
 app.use("/health", healthRouter);
