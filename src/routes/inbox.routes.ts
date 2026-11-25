@@ -6,7 +6,7 @@ import { createRateLimiter } from "../middleware/rateLimiter";
 const router = Router();
 
 router.use(requireApiKey);
-const ownerLimiter = createRateLimiter({windowMs: 60_000, max: 60, keyFn: (req) => req.ownerId});
+const ownerLimiter = createRateLimiter({windowMs: 60_000, max: 60, keyFn: (req) => req.ownerId, prefix: "owner"});
 router.use(ownerLimiter);
 router.post("/",createInboxController);
 router.get("/",listInboxesController);

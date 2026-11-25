@@ -1,24 +1,17 @@
 import { Request, Response, NextFunction } from "express";
+import { redis } from "../lib/redis";
 
 type RateLimitOptions = {
+    prefix: string;
     windowMs: number;
     max: number;
     keyFn: (req: Request) => string | undefined;
 };
 
-export function createRateLimiter({windowMs, max, keyFn}: RateLimitOptions){
-    const hits = new Map<string, {count: number; windowStart: number}>();
+export function createRateLimiter({windowMs, max, keyFn, prefix}: RateLimitOptions){
+    
 
-    setInterval(() => {
-        const now = Date.now();
-        for(const [id, entry] of hits){
-            if(now - entry.windowStart >= windowMs){
-                hits.delete(id);
-            }
-        }
-    }, windowMs).unref();
-
-    return function rateLimiter(req: Request, res: Response, next: NextFunction){
+    return async function rateLimiter(req: Request, res: Response, next: NextFunction){
 
         const id = keyFn(req); //find the identifier (ip address | ownerid) depending on ratelimiter 
         if(id === undefined){
@@ -26,16 +19,21 @@ export function createRateLimiter({windowMs, max, keyFn}: RateLimitOptions){
             return next();
         }
 
-        const now = Date.now();
-        let entry = hits.get(id);
-        if(entry === undefined || now - entry.windowStart >= windowMs){
-            entry = { count: 0, windowStart:  now};
-            hits.set(id, entry);
+        const key = `rl:${prefix}:${id}`;
+
+        let count: number;
+        let ttl: number;
+        try {
+            const entry = await redis.multi().incr(key).pExpire(key, windowMs, "NX").pTTL(key).exec();
+            count = Number(entry[0]);
+            ttl = Number(entry[2]);
+        } catch (err) {
+            req.log.warn({err}, "Redis entry error");
+            return next();
         }
-        entry.count++;
-        
-        if(entry.count > max){
-            const retryAfterSeconds = Math.ceil((entry.windowStart + windowMs - now)/ 1000);
+
+        if(count > max){
+            const retryAfterSeconds = Math.ceil(ttl/ 1000);
             res.set("Retry-After", String(retryAfterSeconds));
             return res.status(429).json({ error: "Too many requests"});
         }
