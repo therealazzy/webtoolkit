@@ -1,8 +1,8 @@
 import { it, describe, expect, vi, beforeEach } from "vitest"
 import request from 'supertest'
 import { prisma } from '../src/lib/prisma'
-import app from "../src/app.ts"
-import { hashApiKey } from "../src/lib/apiKey.ts";
+import app from "../src/app"
+import { hashApiKey } from "../src/lib/apiKey";
 
 vi.mock("../src/lib/prisma", () => ({
     prisma: {

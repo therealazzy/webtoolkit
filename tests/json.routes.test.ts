@@ -1,6 +1,6 @@
 import {describe, expect, it, vi } from "vitest"
 import request from "supertest"
-import app from "../src/app.ts";
+import app from "../src/app";
 
 vi.mock("../src/lib/prisma", () => ({
     prisma: {},
@@ -8,24 +8,24 @@ vi.mock("../src/lib/prisma", () => ({
 
 describe("test json endpoints", () => {
     it("format endpoint test", async () =>{
-        const response = (await request(app).post("/api/v1/json/format").send({
+        const response = await request(app).post("/api/v1/json/format").send({
             json: '{"name":"User","role":"Developer"}'
-        }));
+        });
         expect(response.status).toBe(200); 
         expect(response.body.formatted).toBe(`{\n  "name": "User",\n  "role": "Developer"\n}`);
     }),
     it("minify endpoint test", async () =>{
-        const response = (await request(app).post("/api/v1/json/minify").send({
+        const response = await request(app).post("/api/v1/json/minify").send({
             json: '{"name":    "User",     "role":        "Developer"}'
-        }));
+        });
         expect(response.status).toBe(200); 
         expect(response.body.minified).toBe('{"name":"User","role":"Developer"}');
     }),
     it("diff endpoint test", async () => {
-        const response = (await request(app).post("/api/v1/json/diff").send({
+        const response = await request(app).post("/api/v1/json/diff").send({
             json1: '{"name":"User","age":25}',
             json2: '{"name":"User","age":26}'
-        }));
+        });
         expect(response.status).toBe(200);
         expect(response.body.diff).toEqual([
             {   
@@ -42,5 +42,13 @@ describe("test json endpoints", () => {
         }));
         expect(response.status).toBe(400);
         expect(response.body.error).toBe("Invalid JSON");
+    }),
+    it("returns a 413 for a payload over the limit", async() =>{
+        const response = await request(app).post("/api/v1/json/format").send({
+            json: "a".repeat(110_000)
+        });
+
+        expect(response.status).toBe(413);
+        expect(response.body).toHaveProperty("error");
     })
 });
