@@ -1,6 +1,6 @@
 import {describe, expect, it, vi } from "vitest"
 import request from "supertest"
-import app from "../src/app.ts"
+import app from "../src/app"
 
 vi.mock("../src/lib/prisma", () => ({
   prisma: {},
